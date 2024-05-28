@@ -1,7 +1,8 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
 import './App.css';
 
+// component that represents a single letter box, includes a letter and a color
 function WordBox({ letter, onLetterChange, color, onColorChange, inputRef, onInput }) {
   const colors = ['grey', 'yellow', 'green'];
 
@@ -32,6 +33,7 @@ function WordBox({ letter, onLetterChange, color, onColorChange, inputRef, onInp
   );
 }
 
+// component that represents a row of letter boxes to store a word
 function WordRow({ word, onWordChange }) {
   const letters = word.split('');
   const [colors, setColors] = useState(Array(letters.length).fill('grey'));
@@ -59,6 +61,7 @@ function WordRow({ word, onWordChange }) {
     onWordChange(newLetters.join('')); // join the letters back into a word
   };
 
+  // render a WordBox for each letter in the word
   return (
     <div className="word-row">
       {letters.map((letter, index) => (
@@ -76,7 +79,9 @@ function WordRow({ word, onWordChange }) {
   );
 }
 
+// main App component, renders a WordRow for each guess and has buttons to add a new row and calculate solutions
 function App() {
+  // guesses is an array of strings where each string represents a guess, updated by the handleWordChange func
   const [guesses, setGuesses] = React.useState(['     ']); // Initialize with a string of five spaces
   const [dictionary, setDictionary] = useState([]);
 
@@ -92,14 +97,63 @@ function App() {
     setGuesses(newGuesses);
   };
 
+  // fetch the dictionary file when the component mounts
+  useEffect(() => {
+    fetch('/data/dictionary.txt')
+      .then(response => response.text())
+      .then(data => {
+        const words = data.split('\n'); // split the file contents into an array of words
+        setDictionary(words);
+        console.log(words); // log the dictionary to the console
+      });
+  }, []);
+
   const calculateSolutions = () => {
-    // ...
-    // 
     console.log('Calculating solutions...');
+
+    if (dictionary.length === 0) {
+      console.log('Dictionary is not loaded yet.');
+      return;
+    }
+  
+    if (dictionary.some(word => word === undefined)) {
+      console.log('There are undefined words in the dictionary.');
+      return;
+    }
+  
+    const lastGuess = guesses[guesses.length - 1]; // this is a string, not an object
+
+    const solutions = dictionary.filter(word => {
+    for (let i = 0; i < word.length; i++) {
+      const letter = word[i];
+      const guessLetter = lastGuess[i]; // access the i-th character of the string
+
+      // you need to determine the color of the i-th guess letter here
+      // for now, let's assume it's always 'grey'
+      const color = 'grey';
+
+      if (color === 'grey' && letter === guessLetter) {
+        return false; // discard words with grey letters
+      }
+
+      if (color === 'green' && letter !== guessLetter) {
+        return false; // discard words without the green letter in the same index
+      }
+
+      if (color === 'yellow' && !word.includes(guessLetter)) {
+        return false; // discard words without the yellow letter in any index
+      }
+    }
+
+    return true; // keep the word if it passed all checks
+  });
+
+  console.log(solutions); // output the solutions
   };
 
   return (
     <div className="App">
+      <h1>Wordle Solver</h1>
       {guesses.map((guess, index) => (
         <WordRow
           key={index}
@@ -107,8 +161,8 @@ function App() {
           onWordChange={newWord => handleWordChange(index, newWord)}
         />
       ))}
-      <button onClick={addRow}>Add Row</button>
-      <button onClick={calculateSolutions}>Calculate Solutions</button>
+      <button className="button" onClick={addRow}>Add Row</button>
+      <button className="button" onClick={calculateSolutions}>Calculate Solutions</button>
     </div>
   );
 }

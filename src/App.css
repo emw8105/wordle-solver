@@ -36,3 +36,52 @@
     transform: rotate(360deg);
   }
 }
+
+.word-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+  padding: 20px;
+  background-color: #f5f5f5;
+  border-radius: 10px;
+  box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+}
+
+.word-row {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+
+.word-box {
+  width: 20px;
+  height: 20px;
+  border: 1px solid #ddd;
+  text-align: center;
+  padding: 10px;
+  margin: 5px;
+  border-radius: 5px;
+  box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.1);
+  font-family: 'Arial', sans-serif;
+}
+
+.word-box.grey {
+  background-color: #eee;
+  color: #555;
+}
+
+.word-box.yellow {
+  background-color: #ffeb3b;
+  color: #555;
+}
+
+.word-box.green {
+  background-color: #9ada9d;
+  color: #555;
+}
+
+.App {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}

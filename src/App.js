@@ -34,9 +34,9 @@ function WordBox({ letter, onLetterChange, color, onColorChange, inputRef, onInp
 }
 
 // component that represents a row of letter boxes to store a word
-function WordRow({ word, onWordChange }) {
-  const letters = word.split('');
-  const [colors, setColors] = useState(Array(letters.length).fill('grey'));
+function WordRow({ guess, onWordChange }) {
+  const letters = guess.word.split('');
+  const [colors, setColors] = useState(guess.colors); // initialize colors from guess
   const inputsRef = useRef([]); // create a ref for the inputs
 
   const handleInput = (index) => {
@@ -49,6 +49,7 @@ function WordRow({ word, onWordChange }) {
     const newColors = [...colors];
     newColors[index] = newColor;
     setColors(newColors);
+    onWordChange(letters.join(''), newColors); // pass the new colors to the parent component
   };
 
   const handleLetterChange = (index, newLetter) => {
@@ -82,18 +83,18 @@ function WordRow({ word, onWordChange }) {
 // main App component, renders a WordRow for each guess and has buttons to add a new row and calculate solutions
 function App() {
   // guesses is an array of strings where each string represents a guess, updated by the handleWordChange func
-  const [guesses, setGuesses] = React.useState(['     ']); // Initialize with a string of five spaces
+  const [guesses, setGuesses] = React.useState([{ word: '     ', colors: ['grey', 'grey', 'grey', 'grey', 'grey'] }]);
   const [dictionary, setDictionary] = useState([]);
 
   const addRow = () => {
     if (guesses.length < 6) {
-      setGuesses([...guesses, '     ']);
+      setGuesses([...guesses, { word: '     ', colors: ['grey', 'grey', 'grey', 'grey', 'grey'] }]);
     }
   };
 
-  const handleWordChange = (index, newWord) => {
+  const handleWordChange = (index, newWord, newColors) => {
     const newGuesses = [...guesses];
-    newGuesses[index] = newWord;
+    newGuesses[index] = { word: newWord, colors: newColors };
     setGuesses(newGuesses);
   };
 
@@ -108,9 +109,10 @@ function App() {
       });
   }, []);
 
+
   const calculateSolutions = () => {
     console.log('Calculating solutions...');
-
+  
     if (dictionary.length === 0) {
       console.log('Dictionary is not loaded yet.');
       return;
@@ -121,45 +123,71 @@ function App() {
       return;
     }
   
-    const lastGuess = guesses[guesses.length - 1]; // this is a string, not an object
-
-    const solutions = dictionary.filter(word => {
-    for (let i = 0; i < word.length; i++) {
-      const letter = word[i];
-      const guessLetter = lastGuess[i]; // access the i-th character of the string
-
-      // you need to determine the color of the i-th guess letter here
-      // for now, let's assume it's always 'grey'
-      const color = 'grey';
-
-      if (color === 'grey' && letter === guessLetter) {
-        return false; // discard words with grey letters
+    const greyLetters = [];
+    const yellowLetters = [];
+    const greenLetters = [];
+  
+    for (const guess of guesses) {
+      console.log('Checking guess:', guess)
+      if (!guess.word || !guess.word.trim()) { // Check if the word is not just spaces
+        console.log('Skipping a guess without a word.');
+        continue;
       }
 
-      if (color === 'green' && letter !== guessLetter) {
-        return false; // discard words without the green letter in the same index
+      if (!guess.colors) { // Check if colors is defined
+        console.log('Skipping a guess without colors.');
+        continue;
       }
-
-      if (color === 'yellow' && !word.includes(guessLetter)) {
-        return false; // discard words without the yellow letter in any index
+      
+      console.log('Processing guess:', guess);
+      for (let i = 0; i < guess.word.length; i++) {
+        const letter = guess.word[i];
+        const color = guess.colors[i];
+      
+        if (color === 'grey') {
+          greyLetters.push(letter);
+        } else if (color === 'yellow') {
+          yellowLetters.push({ letter, index: i });
+        } else if (color === 'green') {
+          greenLetters.push({ letter, index: i });
+        }
       }
     }
 
-    return true; // keep the word if it passed all checks
-  });
+    console.log('Grey letters:', greyLetters);
+    console.log('Yellow letters:', yellowLetters);
+    console.log('Green letters:', greenLetters);
 
-  console.log(solutions); // output the solutions
+    const solutions = dictionary.filter(word => {
+      for (const letter of greyLetters) {
+        if (word.includes(letter)) {
+          return false; // discard words that include grey letters
+        }
+      }
+  
+      for (const { letter, index } of yellowLetters) {
+        if (word[index] === letter || !word.includes(letter)) {
+          return false; // discard words that include yellow letters at the wrong index or don't include them at all
+        }
+      }
+  
+      for (const { letter, index } of greenLetters) {
+        if (word[index] !== letter) {
+          return false; // discard words that don't include green letters at the correct index
+        }
+      }
+  
+      return true; // keep the word if it passed all checks
+    });
+  
+    console.log('Current possible solutions: ' + solutions); // output the solutions
   };
 
   return (
     <div className="App">
       <h1>Wordle Solver</h1>
       {guesses.map((guess, index) => (
-        <WordRow
-          key={index}
-          word={guess}
-          onWordChange={newWord => handleWordChange(index, newWord)}
-        />
+        <WordRow key={index} guess={guess} onWordChange={(newWord, newColors) => handleWordChange(index, newWord, newColors)} />
       ))}
       <button className="button" onClick={addRow}>Add Row</button>
       <button className="button" onClick={calculateSolutions}>Calculate Solutions</button>

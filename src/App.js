@@ -85,6 +85,7 @@ function App() {
   // guesses is an array of strings where each string represents a guess, updated by the handleWordChange func
   const [guesses, setGuesses] = React.useState([{ word: '     ', colors: ['grey', 'grey', 'grey', 'grey', 'grey'] }]);
   const [dictionary, setDictionary] = useState([]);
+  const [solutions, setSolutions] = useState([]);
 
   const addRow = () => {
     if (guesses.length < 6) {
@@ -100,7 +101,7 @@ function App() {
 
   // fetch the dictionary file when the component mounts
   useEffect(() => {
-    fetch('/data/dictionary.txt')
+    fetch('/data/solutions.txt')
       .then(response => response.text())
       .then(data => {
         const words = data.split('\n'); // split the file contents into an array of words
@@ -127,60 +128,41 @@ function App() {
     const yellowLetters = [];
     const greenLetters = [];
   
-    for (const guess of guesses) {
-      console.log('Checking guess:', guess)
-      if (!guess.word || !guess.word.trim()) { // Check if the word is not just spaces
-        console.log('Skipping a guess without a word.');
-        continue;
-      }
-
-      if (!guess.colors) { // Check if colors is defined
-        console.log('Skipping a guess without colors.');
-        continue;
+    guesses.forEach((guess) => {
+      if (!guess.colors) {
+        console.log('Skipping guess without colors:', guess);
+        return;
       }
       
-      console.log('Processing guess:', guess);
-      for (let i = 0; i < guess.word.length; i++) {
-        const letter = guess.word[i];
-        const color = guess.colors[i];
-      
+      guess.colors.forEach((color, colorIndex) => {
         if (color === 'grey') {
-          greyLetters.push(letter);
+          greyLetters.push(guess.word[colorIndex]);
         } else if (color === 'yellow') {
-          yellowLetters.push({ letter, index: i });
+          yellowLetters.push(guess.word[colorIndex]);
         } else if (color === 'green') {
-          greenLetters.push({ letter, index: i });
+          greenLetters.push({ letter: guess.word[colorIndex], index: colorIndex });
         }
-      }
-    }
+      });
+    });
 
     console.log('Grey letters:', greyLetters);
     console.log('Yellow letters:', yellowLetters);
     console.log('Green letters:', greenLetters);
+    
+    // each word in the dictionary is followed by a newline character, so we need to remove it, and then convert to uppercase
+    let solutions = dictionary.map(word => word.replace('\r', '').toUpperCase());
 
-    const solutions = dictionary.filter(word => {
-      for (const letter of greyLetters) {
-        if (word.includes(letter)) {
-          return false; // discard words that include grey letters
-        }
-      }
-  
-      for (const { letter, index } of yellowLetters) {
-        if (word[index] === letter || !word.includes(letter)) {
-          return false; // discard words that include yellow letters at the wrong index or don't include them at all
-        }
-      }
-  
-      for (const { letter, index } of greenLetters) {
-        if (word[index] !== letter) {
-          return false; // discard words that don't include green letters at the correct index
-        }
-      }
-  
-      return true; // keep the word if it passed all checks
-    });
-  
-    console.log('Current possible solutions: ' + solutions); // output the solutions
+    // filter out words that contain grey letters
+    solutions = solutions.filter(word => !greyLetters.some(letter => word.includes(letter)));
+    
+    // filter out words that don't contain all yellow letters
+    solutions = solutions.filter(word => yellowLetters.every(letter => word.includes(letter)));
+    
+    // filter out words that don't contain all green letters at the correct indices
+    solutions = solutions.filter(word => greenLetters.every(({ letter, index }) => word[index] === letter));
+    
+    console.log('Current possible solutions:', solutions);
+    setSolutions(solutions);
   };
 
   return (
@@ -191,6 +173,11 @@ function App() {
       ))}
       <button className="button" onClick={addRow}>Add Row</button>
       <button className="button" onClick={calculateSolutions}>Calculate Solutions</button>
+
+      <h2>Possible Solutions:</h2>
+      <div style={{ width: '100%', height: '200px', overflow: 'auto', whiteSpace: 'pre-wrap' }}>
+        {solutions.join(' ')}
+      </div>
     </div>
   );
 }

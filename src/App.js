@@ -1,9 +1,17 @@
 import React, { useState, useRef, useEffect } from 'react';
-import axios from 'axios';
 import './App.css';
 
+// TDL:
+// - Add a button to remove a row, maybe move add/remove somewhere else so they aren't moved around when rows are added/removed
+// - Add a button to clear all rows
+// - Add a check for calculating solutions when a row doesnt have every box filled
+// - Fix logic for calculating solutions when a row has duplicate letters
+// - Brainstorm solutions for frontend box clicking
+// - Add a readme
+
+
 // component that represents a single letter box, includes a letter and a color
-function WordBox({ letter, onLetterChange, color, onColorChange, inputRef, onInput }) {
+function WordBox({ letter, onLetterChange, color, onColorChange, onInput }) {
   const colors = ['grey', 'yellow', 'green'];
 
   const handleClick = () => {

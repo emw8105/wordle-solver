@@ -112,7 +112,7 @@ function App() {
 
 
   const calculateSolutions = () => {
-    console.log('Calculating solutions...');
+    console.log(`Calculating solutions... from ${dictionary.length} words`);
   
     if (dictionary.length === 0) {
       console.log('Dictionary is not loaded yet.');
@@ -135,12 +135,17 @@ function App() {
       }
       
       guess.colors.forEach((color, colorIndex) => {
+        const letter = guess.word[colorIndex];
+        if (letter === ' ') {
+          console.log('Skipping space at color index: ', colorIndex)
+          return; // skip spaces
+        }
         if (color === 'grey') {
-          greyLetters.push(guess.word[colorIndex]);
+          greyLetters.push(letter);
         } else if (color === 'yellow') {
-          yellowLetters.push(guess.word[colorIndex]);
+          yellowLetters.push({ letter: letter, index: colorIndex });
         } else if (color === 'green') {
-          greenLetters.push({ letter: guess.word[colorIndex], index: colorIndex });
+          greenLetters.push({ letter: letter, index: colorIndex });
         }
       });
     });
@@ -156,11 +161,21 @@ function App() {
     solutions = solutions.filter(word => !greyLetters.some(letter => word.includes(letter)));
     
     // filter out words that don't contain all yellow letters
-    solutions = solutions.filter(word => yellowLetters.every(letter => word.includes(letter)));
+    solutions = solutions.filter(word => 
+      yellowLetters.every(({ letter, index }) => 
+        word.includes(letter) && word.indexOf(letter) !== index
+      )
+    );
     
     // filter out words that don't contain all green letters at the correct indices
     solutions = solutions.filter(word => greenLetters.every(({ letter, index }) => word[index] === letter));
     
+    solutions = solutions.filter(word => 
+      !yellowLetters.some(letter => 
+        word[word.indexOf(letter)] === letter && greenLetters.some(green => green.letter === letter)
+      )
+    );
+
     console.log('Current possible solutions:', solutions);
     setSolutions(solutions);
   };

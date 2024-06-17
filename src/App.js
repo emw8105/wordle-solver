@@ -12,7 +12,7 @@ import './App.css';
 
 // component that represents a single letter box, includes a letter and a color
 function WordBox({ letter, onLetterChange, color, onColorChange, onInput }) {
-  const colors = ['grey', 'yellow', 'green'];
+  const colors = ['gray', 'yellow', 'green'];
 
   const handleClick = () => {
     const currentColorIndex = colors.indexOf(color);
@@ -91,13 +91,13 @@ function WordRow({ guess, onWordChange }) {
 // main App component, renders a WordRow for each guess and has buttons to add a new row and calculate solutions
 function App() {
   // guesses is an array of strings where each string represents a guess, updated by the handleWordChange func
-  const [guesses, setGuesses] = React.useState([{ word: '     ', colors: ['grey', 'grey', 'grey', 'grey', 'grey'] }]);
+  const [guesses, setGuesses] = React.useState([{ word: '     ', colors: ['gray', 'gray', 'gray', 'gray', 'gray'] }]);
   const [dictionary, setDictionary] = useState([]);
   const [solutions, setSolutions] = useState([]);
 
   const addRow = () => {
     if (guesses.length < 6) {
-      setGuesses([...guesses, { word: '     ', colors: ['grey', 'grey', 'grey', 'grey', 'grey'] }]);
+      setGuesses([...guesses, { word: '     ', colors: ['gray', 'gray', 'gray', 'gray', 'gray'] }]);
     }
   };
 
@@ -132,7 +132,7 @@ function App() {
       return;
     }
   
-    const greyLetters = [];
+    const grayLetters = [];
     const yellowLetters = [];
     const greenLetters = [];
   
@@ -148,8 +148,8 @@ function App() {
           console.log('Skipping space at color index: ', colorIndex)
           return; // skip spaces
         }
-        if (color === 'grey') {
-          greyLetters.push(letter);
+        if (color === 'gray') {
+          grayLetters.push(letter);
         } else if (color === 'yellow') {
           yellowLetters.push({ letter: letter, index: colorIndex });
         } else if (color === 'green') {
@@ -158,31 +158,68 @@ function App() {
       });
     });
 
-    console.log('Grey letters:', greyLetters);
+    console.log('Gray letters:', grayLetters);
     console.log('Yellow letters:', yellowLetters);
     console.log('Green letters:', greenLetters);
     
     // each word in the dictionary is followed by a newline character, so we need to remove it, and then convert to uppercase
     let solutions = dictionary.map(word => word.replace('\r', '').toUpperCase());
 
-    // filter out words that contain grey letters
-    solutions = solutions.filter(word => !greyLetters.some(letter => word.includes(letter)));
-    
-    // filter out words that don't contain all yellow letters
-    solutions = solutions.filter(word => 
-      yellowLetters.every(({ letter, index }) => 
-        word.includes(letter) && word.indexOf(letter) !== index
-      )
+    // remove duplicate hints across each guess
+    let uniqueGreenLetters = [...new Set(greenLetters.map(JSON.stringify))].map(JSON.parse);
+    let uniqueYellowLetters = [...new Set(yellowLetters.map(JSON.stringify))].map(JSON.parse);
+    let uniqueGrayLetters = [...new Set(grayLetters.map(JSON.stringify))].map(JSON.parse);
+
+    // check for multi-letter possibilities
+    let multiGreenLetters = uniqueGreenLetters.filter(({ letter }) => 
+      uniqueGreenLetters.filter(l => l.letter === letter).length > 1
     );
-    
-    // filter out words that don't contain all green letters at the correct indices
-    solutions = solutions.filter(word => greenLetters.every(({ letter, index }) => word[index] === letter));
-    
-    solutions = solutions.filter(word => 
-      !yellowLetters.some(letter => 
-        word[word.indexOf(letter)] === letter && greenLetters.some(green => green.letter === letter)
-      )
+    let multiYellowLetters = uniqueYellowLetters.filter(({ letter }) => 
+      uniqueYellowLetters.filter(l => l.letter === letter).length > 1
     );
+    let multiGrayLetters = uniqueGrayLetters.filter(({ letter }) => 
+      uniqueGrayLetters.filter(l => l.letter === letter).length > 1
+    );
+
+    // remove multi-letter possibilities from unique letters
+    uniqueGreenLetters = uniqueGreenLetters.filter(({ letter }) => 
+      !multiGreenLetters.some(l => l.letter === letter)
+    );
+    uniqueYellowLetters = uniqueYellowLetters.filter(({ letter }) => 
+      !multiYellowLetters.some(l => l.letter === letter)
+    );
+    uniqueGrayLetters = uniqueGrayLetters.filter(({ letter }) => 
+      !multiGrayLetters.some(l => l.letter === letter)
+    );
+
+    // filter solutions based on new logic
+    solutions = solutions.filter(word => 
+      uniqueGreenLetters.every(({ letter, index }) => word[index] === letter) &&
+      uniqueYellowLetters.every(({ letter, index }) => word.includes(letter) && word.indexOf(letter) !== index) &&
+      multiGreenLetters.every(({ letter }) => word.split(letter).length - 1 >= 2) &&
+      multiYellowLetters.every(({ letter }) => word.split(letter).length - 1 >= 2) &&
+      !uniqueGrayLetters.some(({ letter }) => word.includes(letter)) &&
+      multiGrayLetters.every(({ letter }) => word.split(letter).length - 1 < 2)
+    );
+
+    // // filter out words that contain gray letters
+    // solutions = solutions.filter(word => !grayLetters.some(letter => word.includes(letter)));
+    
+    // // filter out words that don't contain all yellow letters
+    // solutions = solutions.filter(word => 
+    //   yellowLetters.every(({ letter, index }) => 
+    //     word.includes(letter) && word.indexOf(letter) !== index
+    //   )
+    // );
+    
+    // // filter out words that don't contain all green letters at the correct indices
+    // solutions = solutions.filter(word => greenLetters.every(({ letter, index }) => word[index] === letter));
+    
+    // solutions = solutions.filter(word => 
+    //   !yellowLetters.some(letter => 
+    //     word[word.indexOf(letter)] === letter && greenLetters.some(green => green.letter === letter)
+    //   )
+    // );
 
     console.log('Current possible solutions:', solutions);
     setSolutions(solutions);

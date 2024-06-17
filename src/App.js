@@ -118,6 +118,15 @@ function App() {
       });
   }, []);
 
+  const getColor = (letter, index) => {
+    for (let guess of guesses) {
+      if (guess.word[index] === letter) {
+        return guess.colors[index];
+      }
+    }
+    return 'gray'; // default color if the letter is not found
+  };
+
 
   const calculateSolutions = () => {
     console.log(`Calculating solutions... from ${dictionary.length} words`);
@@ -165,43 +174,83 @@ function App() {
     // each word in the dictionary is followed by a newline character, so we need to remove it, and then convert to uppercase
     let solutions = dictionary.map(word => word.replace('\r', '').toUpperCase());
 
+    // new logic will need to do something like this
+    // each guess will need to be evaluated separately as the hints in a guess are dependent on each other
+    let guessMaps = guesses.map(guess => {
+      let map = new Map();
+      guess.word.split('').forEach((letter, index) => {
+        let color = guess.colors[index];
+        if (map.has(letter)) {
+          map.get(letter).push({ color, index });
+        } else {
+          map.set(letter, [{ color, index }]);
+        }
+      });
+      return map;
+    });
+    
+    solutions = solutions.filter(word => {
+      for (let guessMap of guessMaps) {
+        for (let [letter, hints] of guessMap) {
+          let wordIndices = [...word.matchAll(new RegExp(letter, 'g'))].map(match => match.index);
+          let greenIndices = hints.filter(hint => hint.color === 'green').map(hint => hint.index);
+          let yellowIndices = hints.filter(hint => hint.color === 'yellow').map(hint => hint.index);
+          let grayIndices = hints.filter(hint => hint.color === 'gray').map(hint => hint.index);
+    
+          if (greenIndices.some(index => !wordIndices.includes(index)) || greenIndices.length > wordIndices.length) {
+            return false;
+          }
+          if (yellowIndices.some(index => wordIndices.includes(index)) || yellowIndices.length > wordIndices.length - greenIndices.length) {
+            return false;
+          }
+          if (grayIndices.some(index => wordIndices.includes(index))) {
+            return false;
+          }
+        }
+      }
+      return true;
+    });
+
+    // IMPROVED LOGIC - But doesn't handle multi-letters within guesses, just from sets of all guesses
     // remove duplicate hints across each guess
-    let uniqueGreenLetters = [...new Set(greenLetters.map(JSON.stringify))].map(JSON.parse);
-    let uniqueYellowLetters = [...new Set(yellowLetters.map(JSON.stringify))].map(JSON.parse);
-    let uniqueGrayLetters = [...new Set(grayLetters.map(JSON.stringify))].map(JSON.parse);
+    // let uniqueGreenLetters = [...new Set(greenLetters.map(JSON.stringify))].map(JSON.parse);
+    // let uniqueYellowLetters = [...new Set(yellowLetters.map(JSON.stringify))].map(JSON.parse);
+    // let uniqueGrayLetters = [...new Set(grayLetters.map(JSON.stringify))].map(JSON.parse);
 
-    // check for multi-letter possibilities
-    let multiGreenLetters = uniqueGreenLetters.filter(({ letter }) => 
-      uniqueGreenLetters.filter(l => l.letter === letter).length > 1
-    );
-    let multiYellowLetters = uniqueYellowLetters.filter(({ letter }) => 
-      uniqueYellowLetters.filter(l => l.letter === letter).length > 1
-    );
-    let multiGrayLetters = uniqueGrayLetters.filter(({ letter }) => 
-      uniqueGrayLetters.filter(l => l.letter === letter).length > 1
-    );
+    // // check for multi-letter possibilities
+    // let multiGreenLetters = uniqueGreenLetters.filter(({ letter }) => 
+    //   uniqueGreenLetters.filter(l => l.letter === letter).length > 1
+    // );
+    // let multiYellowLetters = uniqueYellowLetters.filter(({ letter }) => 
+    //   uniqueYellowLetters.filter(l => l.letter === letter).length > 1
+    // );
+    // let multiGrayLetters = uniqueGrayLetters.filter(({ letter }) => 
+    //   uniqueGrayLetters.filter(l => l.letter === letter).length > 1
+    // );
 
-    // remove multi-letter possibilities from unique letters
-    uniqueGreenLetters = uniqueGreenLetters.filter(({ letter }) => 
-      !multiGreenLetters.some(l => l.letter === letter)
-    );
-    uniqueYellowLetters = uniqueYellowLetters.filter(({ letter }) => 
-      !multiYellowLetters.some(l => l.letter === letter)
-    );
-    uniqueGrayLetters = uniqueGrayLetters.filter(({ letter }) => 
-      !multiGrayLetters.some(l => l.letter === letter)
-    );
+    // // remove multi-letter possibilities from unique letters
+    // uniqueGreenLetters = uniqueGreenLetters.filter(({ letter }) => 
+    //   !multiGreenLetters.some(l => l.letter === letter)
+    // );
+    // uniqueYellowLetters = uniqueYellowLetters.filter(({ letter }) => 
+    //   !multiYellowLetters.some(l => l.letter === letter)
+    // );
+    // uniqueGrayLetters = uniqueGrayLetters.filter(({ letter }) => 
+    //   !multiGrayLetters.some(l => l.letter === letter)
+    // );
 
-    // filter solutions based on new logic
-    solutions = solutions.filter(word => 
-      uniqueGreenLetters.every(({ letter, index }) => word[index] === letter) &&
-      uniqueYellowLetters.every(({ letter, index }) => word.includes(letter) && word.indexOf(letter) !== index) &&
-      multiGreenLetters.every(({ letter }) => word.split(letter).length - 1 >= 2) &&
-      multiYellowLetters.every(({ letter }) => word.split(letter).length - 1 >= 2) &&
-      !uniqueGrayLetters.some(({ letter }) => word.includes(letter)) &&
-      multiGrayLetters.every(({ letter }) => word.split(letter).length - 1 < 2)
-    );
+    // // filter solutions based on new logic
+    // solutions = solutions.filter(word => 
+    //   uniqueGreenLetters.every(({ letter, index }) => word[index] === letter) &&
+    //   uniqueYellowLetters.every(({ letter, index }) => word.includes(letter) && word.indexOf(letter) !== index) &&
+    //   multiGreenLetters.every(({ letter }) => word.split(letter).length - 1 >= 2) &&
+    //   multiYellowLetters.every(({ letter }) => word.split(letter).length - 1 >= 2) &&
+    //   !uniqueGrayLetters.some(({ letter }) => word.includes(letter)) &&
+    //   multiGrayLetters.every(({ letter }) => word.split(letter).length - 1 < 2)
+    // );
 
+
+    // OLD LOGIC
     // // filter out words that contain gray letters
     // solutions = solutions.filter(word => !grayLetters.some(letter => word.includes(letter)));
     

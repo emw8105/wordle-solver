@@ -140,42 +140,21 @@ function App() {
       console.log('There are undefined words in the dictionary.');
       return;
     }
-  
-    const grayLetters = [];
-    const yellowLetters = [];
-    const greenLetters = [];
-  
-    guesses.forEach((guess) => {
-      if (!guess.colors) {
-        console.log('Skipping guess without colors:', guess);
-        return;
-      }
-      
-      guess.colors.forEach((color, colorIndex) => {
-        const letter = guess.word[colorIndex];
-        if (letter === ' ') {
-          console.log('Skipping space at color index: ', colorIndex)
-          return; // skip spaces
-        }
-        if (color === 'gray') {
-          grayLetters.push(letter);
-        } else if (color === 'yellow') {
-          yellowLetters.push({ letter: letter, index: colorIndex });
-        } else if (color === 'green') {
-          greenLetters.push({ letter: letter, index: colorIndex });
-        }
-      });
-    });
-
-    console.log('Gray letters:', grayLetters);
-    console.log('Yellow letters:', yellowLetters);
-    console.log('Green letters:', greenLetters);
     
     // each word in the dictionary is followed by a newline character, so we need to remove it, and then convert to uppercase
     let solutions = dictionary.map(word => word.replace('\r', '').toUpperCase());
 
-    // new logic will need to do something like this
-    // each guess will need to be evaluated separately as the hints in a guess are dependent on each other
+    /* 
+    the hints from each guess need to be evaluated respective to the other letters in the guess
+    for example, if the guess is 'SASSY' and the hints are ['yellow', 'gray', 'gray', 'green', 'gray'],
+    the duplicate S's changes the hint that would otherwise be evaluated differently if each letter was evaluated irrespectively of the guess
+    in this case, we have a yellow S and a gray S, which wouldn't be possible if the letters weren't repeated within the same guess
+    as such, the solution is obtained by filtering the solutions based on the hints of each guess one guess at a time
+    */
+
+    // split the guess into an array of objects containing the letter and color
+    // create a map for each guess that maps each letter to an array of objects containing the color and index of the letter
+    // ex: 'SASSY' -> [{ S: [{ color: 'gray', index: 0 }, { color: 'yellow', index: 2 }, { color: 'green', index: 3 }], A: [{ color: 'gray', index: 2 }], Y: [{ color: 'gray', index: 3 }] }]
     let guessMaps = guesses.map(guess => {
       let map = new Map();
       guess.word.split('').forEach((letter, index) => {
@@ -189,14 +168,25 @@ function App() {
       return map;
     });
     
+    // filter the solutions based on the guess maps
+    // iterate over each guess map and check if the word is a valid solution
     solutions = solutions.filter(word => {
       for (let guessMap of guessMaps) {
+        // iterate over each letter in the guess map
         for (let [letter, hints] of guessMap) {
-          let wordIndices = [...word.matchAll(new RegExp(letter, 'g'))].map(match => match.index);
+          // get the indices of the letter in the guess word along with the indices of the green, yellow, and gray hints
+
+          // create a new global regex to match all instances of the letter in the word, the ...matchAll converts the returned iterator to an array
+          // the resulting array is mapped to get the index of each match and saved in wordIndices
+          let wordIndices = [...word.matchAll(new RegExp(letter, 'g'))].map(match => match.index); 
+
+          // filter the hints to get the indices of the green, yellow, and gray hints
           let greenIndices = hints.filter(hint => hint.color === 'green').map(hint => hint.index);
           let yellowIndices = hints.filter(hint => hint.color === 'yellow').map(hint => hint.index);
           let grayIndices = hints.filter(hint => hint.color === 'gray').map(hint => hint.index);
     
+          // check if the word is a valid solution based on the indices of the letter and the properties of the hints
+          // if there are more occurence of the letter in the word than in the guess, the word is not a valid solution
           if (greenIndices.some(index => !wordIndices.includes(index)) || greenIndices.length > wordIndices.length) {
             return false;
           }
@@ -210,65 +200,6 @@ function App() {
       }
       return true;
     });
-
-    // IMPROVED LOGIC - But doesn't handle multi-letters within guesses, just from sets of all guesses
-    // remove duplicate hints across each guess
-    // let uniqueGreenLetters = [...new Set(greenLetters.map(JSON.stringify))].map(JSON.parse);
-    // let uniqueYellowLetters = [...new Set(yellowLetters.map(JSON.stringify))].map(JSON.parse);
-    // let uniqueGrayLetters = [...new Set(grayLetters.map(JSON.stringify))].map(JSON.parse);
-
-    // // check for multi-letter possibilities
-    // let multiGreenLetters = uniqueGreenLetters.filter(({ letter }) => 
-    //   uniqueGreenLetters.filter(l => l.letter === letter).length > 1
-    // );
-    // let multiYellowLetters = uniqueYellowLetters.filter(({ letter }) => 
-    //   uniqueYellowLetters.filter(l => l.letter === letter).length > 1
-    // );
-    // let multiGrayLetters = uniqueGrayLetters.filter(({ letter }) => 
-    //   uniqueGrayLetters.filter(l => l.letter === letter).length > 1
-    // );
-
-    // // remove multi-letter possibilities from unique letters
-    // uniqueGreenLetters = uniqueGreenLetters.filter(({ letter }) => 
-    //   !multiGreenLetters.some(l => l.letter === letter)
-    // );
-    // uniqueYellowLetters = uniqueYellowLetters.filter(({ letter }) => 
-    //   !multiYellowLetters.some(l => l.letter === letter)
-    // );
-    // uniqueGrayLetters = uniqueGrayLetters.filter(({ letter }) => 
-    //   !multiGrayLetters.some(l => l.letter === letter)
-    // );
-
-    // // filter solutions based on new logic
-    // solutions = solutions.filter(word => 
-    //   uniqueGreenLetters.every(({ letter, index }) => word[index] === letter) &&
-    //   uniqueYellowLetters.every(({ letter, index }) => word.includes(letter) && word.indexOf(letter) !== index) &&
-    //   multiGreenLetters.every(({ letter }) => word.split(letter).length - 1 >= 2) &&
-    //   multiYellowLetters.every(({ letter }) => word.split(letter).length - 1 >= 2) &&
-    //   !uniqueGrayLetters.some(({ letter }) => word.includes(letter)) &&
-    //   multiGrayLetters.every(({ letter }) => word.split(letter).length - 1 < 2)
-    // );
-
-
-    // OLD LOGIC
-    // // filter out words that contain gray letters
-    // solutions = solutions.filter(word => !grayLetters.some(letter => word.includes(letter)));
-    
-    // // filter out words that don't contain all yellow letters
-    // solutions = solutions.filter(word => 
-    //   yellowLetters.every(({ letter, index }) => 
-    //     word.includes(letter) && word.indexOf(letter) !== index
-    //   )
-    // );
-    
-    // // filter out words that don't contain all green letters at the correct indices
-    // solutions = solutions.filter(word => greenLetters.every(({ letter, index }) => word[index] === letter));
-    
-    // solutions = solutions.filter(word => 
-    //   !yellowLetters.some(letter => 
-    //     word[word.indexOf(letter)] === letter && greenLetters.some(green => green.letter === letter)
-    //   )
-    // );
 
     console.log('Current possible solutions:', solutions);
     setSolutions(solutions);

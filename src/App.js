@@ -44,8 +44,12 @@ function WordBox({ letter, onLetterChange, color, onColorChange, onInput }) {
 // component that represents a row of letter boxes to store a word
 function WordRow({ guess, onWordChange }) {
   const letters = guess.word.split('');
-  const [colors, setColors] = useState(guess.colors); // initialize colors from guess
+  const [colors, setColors] = useState(Array.isArray(guess.colors) ? guess.colors : []); // provide a default value for guess.colors
   const inputsRef = useRef([]); // create a ref for the inputs
+
+  useEffect(() => {
+    setColors(guess.colors); // update colors when guess.colors changes
+  }, [guess.colors]);
 
   const handleInput = (index) => {
     if (index < letters.length - 1 && inputsRef.current[index + 1]) { // check if the ref is defined
@@ -54,7 +58,7 @@ function WordRow({ guess, onWordChange }) {
   };
 
   const handleColorChange = (index, newColor) => {
-    const newColors = [...colors];
+    const newColors = Array.isArray(colors) ? [...colors] : []; // check if colors is an array before spreading it
     newColors[index] = newColor;
     setColors(newColors);
     onWordChange(letters.join(''), newColors); // pass the new colors to the parent component
@@ -78,7 +82,7 @@ function WordRow({ guess, onWordChange }) {
           key={index}
           letter={letter}
           onLetterChange={(newLetter) => handleLetterChange(index, newLetter)}
-          color={colors[index]}
+          color={colors && colors[index]} // check if colors is defined before accessing its elements
           onColorChange={(newColor) => handleColorChange(index, newColor)}
           inputRef={el => inputsRef.current[index] = el} // pass the ref to the WordBox
           onInput={() => handleInput(index)} // pass the handleInput function to the WordBox
@@ -101,6 +105,19 @@ function App() {
     }
   };
 
+  const removeRow = () => {
+    if (guesses.length > 0) {
+      const newGuesses = guesses.slice(0, -1);
+      setGuesses(newGuesses);
+    }
+  };
+
+  const clearRows = () => {
+    const lastGuess = guesses[guesses.length - 1];
+    const clearedGuess = { word: '     ', colors: ['gray', 'gray', 'gray', 'gray', 'gray'] };
+    setGuesses([clearedGuess]);
+  };
+
   const handleWordChange = (index, newWord, newColors) => {
     const newGuesses = [...guesses];
     newGuesses[index] = { word: newWord, colors: newColors };
@@ -117,15 +134,6 @@ function App() {
         console.log(words); // log the dictionary to the console
       });
   }, []);
-
-  const getColor = (letter, index) => {
-    for (let guess of guesses) {
-      if (guess.word[index] === letter) {
-        return guess.colors[index];
-      }
-    }
-    return 'gray'; // default color if the letter is not found
-  };
 
 
   const calculateSolutions = () => {
@@ -158,7 +166,8 @@ function App() {
     let guessMaps = guesses.map(guess => {
       let map = new Map();
       guess.word.split('').forEach((letter, index) => {
-        let color = guess.colors[index];
+        // check if guess.colors is an array and it has an element at the index index
+        let color = Array.isArray(guess.colors) && guess.colors.length > index ? guess.colors[index] : undefined;
         if (map.has(letter)) {
           map.get(letter).push({ color, index });
         } else {
@@ -206,19 +215,24 @@ function App() {
   };
 
   return (
-    <div className="App">
+    <div className="App" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
       <h1>Wordle Solver</h1>
       {guesses.map((guess, index) => (
         <WordRow key={index} guess={guess} onWordChange={(newWord, newColors) => handleWordChange(index, newWord, newColors)} />
       ))}
-      <button className="button" onClick={addRow}>Add Row</button>
-      <button className="button" onClick={calculateSolutions}>Calculate Solutions</button>
-
       <h2>Possible Solutions:</h2>
-      <div style={{ width: '100%', height: '200px', overflow: 'auto', whiteSpace: 'pre-wrap' }}>
+      <div style={{ maxWidth: '700px', height: '200px', overflow: 'auto', whiteSpace: 'pre-wrap' }}>
         {solutions.join(' ')}
       </div>
     </div>
+    <div style={{ position: 'absolute', right: '15%', top: '10%', display: 'flex', flexDirection: 'column' }}>
+      <button className="button" onClick={addRow}>Add Row</button>
+      <button className="button" onClick={removeRow}>Remove Row</button>
+      <button className="button" onClick={clearRows}>Clear Rows</button>
+      <button className="button" onClick={calculateSolutions}>Calculate Solutions</button>
+    </div>
+  </div>
   );
 }
 

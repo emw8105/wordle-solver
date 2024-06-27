@@ -13,6 +13,14 @@ These rules become a bit muddled with duplicate letters in the same guess, but w
 Once the guess is entered into the row, click the "Calculate Solutions" button to reveal all of the possible words meeting the existing hint criteria. Once one of the possible words has been attempted in the Wordle, add a new row in the app and provide those hints to the bot.
 Repeat until the Wordle has been solved.
 
+
+<div align="center">
+  <img src="https://github.com/emw8105/wordle-solver/blob/main/images/usage%20screenrecording.gif" alt="UI Usage Gif">
+  <p>An example of entering a guess into the program</p>
+</div>
+
+
+
 For ease of usage (primary during development), the "Remove Row" and "Clear Rows" buttons were added, the "Remove Row" button removes the bottommost row and the "Clear Rows" button resets the app back to the initial blank singular row to start over.
 
 ## Design

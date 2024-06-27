@@ -14,10 +14,10 @@ Once the guess is entered into the row, click the "Calculate Solutions" button t
 Repeat until the Wordle has been solved.
 
 
-<div align="center">
+<!-- <div align="center">
   <img src="https://github.com/emw8105/wordle-solver/blob/main/images/usage%20screenrecording.gif" alt="UI Usage Gif">
   <p>An example of entering a guess into the program</p>
-</div>
+</div> -->
 
 
 

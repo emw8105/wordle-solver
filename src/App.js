@@ -113,7 +113,6 @@ function App() {
   };
 
   const clearRows = () => {
-    const lastGuess = guesses[guesses.length - 1];
     const clearedGuess = { word: '     ', colors: ['gray', 'gray', 'gray', 'gray', 'gray'] };
     setGuesses([clearedGuess]);
   };

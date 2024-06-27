@@ -194,19 +194,32 @@ function App() {
           let yellowIndices = hints.filter(hint => hint.color === 'yellow').map(hint => hint.index);
           let grayIndices = hints.filter(hint => hint.color === 'gray').map(hint => hint.index);
     
-          // check if the word is a valid solution based on the indices of the letter and the properties of the hints
-          // if there are more occurence of the letter in the word than in the guess, the word is not a valid solution
-          if (greenIndices.some(index => !wordIndices.includes(index)) || greenIndices.length > wordIndices.length) {
+          let greenCount = greenIndices.length;
+          let yellowCount = yellowIndices.length;
+          let grayCount = grayIndices.length;
+
+          let letterCount = wordIndices.length;
+
+          // this check ensures that the indices of the green hints match the indicies of the letter in the word
+          if (greenCount > letterCount || greenIndices.some(index => !wordIndices.includes(index))) {
             return false;
           }
-          if (yellowIndices.some(index => wordIndices.includes(index)) || yellowIndices.length > wordIndices.length - greenIndices.length) {
+
+          // this check ensures that words containing the yellow letters don't have the same index, as
+          // the yellow letters suggest a letter is in the word, but not in the same position
+          if (yellowCount > letterCount - greenCount || yellowIndices.some(index => wordIndices.includes(index))) {
             return false;
           }
-          if (grayIndices.some(index => wordIndices.includes(index))) {
+
+          // this check ensures that the num gray hints is not less than the num occurences of the letter in the word minus the num green hints and yellow hints
+          // basically, it's ensuring that the gray hints are not suggesting that a letter is not in the word when it is by double checking the existing hints in the guess
+          if (grayCount < letterCount - greenCount - yellowCount) {
             return false;
           }
         }
       }
+
+      // if the word made it through the filtering checks, then it is a possible solution
       return true;
     });
 
